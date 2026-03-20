@@ -27,9 +27,9 @@ export const io = new Server(server, {
   },
 });
 
-app.use(cors({ 
-  origin: ["http://localhost:5173", "http://127.0.0.1:5173"],
-  credentials: true 
+app.use(cors({
+  origin: ["http://localhost:5173", "https://whatsapp-clone-6awq.vercel.app/"],
+  credentials: true
 }));
 app.use(compression());
 app.use(express.json({ limit: "10mb" }));
@@ -56,27 +56,27 @@ const userSocketMap = {}; // userId : socketId (tracks at least one active socke
 io.on("connection", async (socket) => {
   const userId = socket.handshake.query.userId;
   if (userId) {
-      userSocketMap[userId] = socket.id;
-      socket.join(userId); 
-      
-      // JOIN ALL GROUP ROOMS
-      try {
-        const Group = (await import("./src/models/Group.js")).default;
-        const groups = await Group.find({ members: userId });
-        groups.forEach(group => {
-            socket.join(String(group._id));
-            console.log(`Socket ${socket.id} auto-joined group: ${group.name}`);
-        });
-      } catch (err) {
-        console.error("Error joining groups on connect:", err);
-      }
+    userSocketMap[userId] = socket.id;
+    socket.join(userId);
 
-      io.emit("getOnlineUsers", Object.keys(userSocketMap));
-  } 
+    // JOIN ALL GROUP ROOMS
+    try {
+      const Group = (await import("./src/models/Group.js")).default;
+      const groups = await Group.find({ members: userId });
+      groups.forEach(group => {
+        socket.join(String(group._id));
+        console.log(`Socket ${socket.id} auto-joined group: ${group.name}`);
+      });
+    } catch (err) {
+      console.error("Error joining groups on connect:", err);
+    }
+
+    io.emit("getOnlineUsers", Object.keys(userSocketMap));
+  }
 
   socket.on("joinGroup", (groupId) => {
-      socket.join(String(groupId));
-      console.log(`Socket ${socket.id} joined group room: ${groupId}`);
+    socket.join(String(groupId));
+    console.log(`Socket ${socket.id} joined group room: ${groupId}`);
   });
 
   socket.on("register", (senderId) => {
@@ -88,14 +88,14 @@ io.on("connection", async (socket) => {
 
   socket.on("messageDelivered", async ({ messageId, senderId }) => {
     try {
-       const Message = (await import("./src/models/Message.js")).default;
-       const msg = await Message.findByIdAndUpdate(messageId, { status: "delivered" }, { new: true });
-       if (msg) {
-          const senderSocketId = userSocketMap[senderId];
-          if (senderSocketId) {
-             io.to(senderSocketId).emit("messageDelivered", { messageId: msg._id, status: "delivered" });
-          }
-       }
+      const Message = (await import("./src/models/Message.js")).default;
+      const msg = await Message.findByIdAndUpdate(messageId, { status: "delivered" }, { new: true });
+      if (msg) {
+        const senderSocketId = userSocketMap[senderId];
+        if (senderSocketId) {
+          io.to(senderSocketId).emit("messageDelivered", { messageId: msg._id, status: "delivered" });
+        }
+      }
     } catch (err) {
     }
   });
@@ -131,6 +131,6 @@ export const getReceiverSocketId = (receiverId) => {
 };
 
 Db().then(() => {
-  server.listen(PORT, "0.0.0.0", () => {});
+  server.listen(PORT, "0.0.0.0", () => { });
 }).catch(err => {
 });

@@ -28,7 +28,7 @@ export const io = new Server(server, {
 });
 
 app.use(cors({
-  origin: ["http://localhost:5173", "https://whatsapp-clone-6awq.vercel.app/"],
+  origin: ["http://localhost:5173", "https://whatsapp-clone-6awq.vercel.app"],
   credentials: true
 }));
 app.use(compression());

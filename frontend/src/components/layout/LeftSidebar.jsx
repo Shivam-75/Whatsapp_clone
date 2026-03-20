@@ -80,7 +80,7 @@ const ChatItem = ({ user, onClick, active, isOnline, lastMsg, authUser, unreadCo
 
 
 const LeftSidebar = () => {
-  const { users, getUsers, isUsersLoading, setSelectedUser, selectedUser, lastMessages, unreadCounts, setDrawerOpen, sidebarView, setSidebarView, typingUsers, usersPage, usersTotalPages } = useChatStore();
+  const { users = [], getUsers, isUsersLoading, setSelectedUser, selectedUser, lastMessages, unreadCounts, setDrawerOpen, sidebarView, setSidebarView, typingUsers, usersPage, usersTotalPages } = useChatStore();
   const { groups, isLoading: isGroupsLoading, fetchGroups, setSelectedGroup } = useGroupStore();
   const { onlineUsers, authUser } = useAuthStore();
   const navigate = useNavigate();
@@ -296,16 +296,7 @@ const LeftSidebar = () => {
             <FilterChip label="+" active={false} />
           </div>
 
-          {/* Archived */}
-          <div className="flex items-center px-4 py-3 hover:bg-wa-bg-hover cursor-pointer shrink-0 transition-colors">
-             <div className="w-6 flex items-center justify-center mr-5">
-                <Archive className="w-5 h-5 text-wa-text-muted" strokeWidth={1.5} />
-             </div>
-             <span className="text-wa-text-muted font-medium pt-0.5 flex-1">Archived</span>
-          </div>
-          
-          {/* Divider */}
-          <div className="w-full h-px bg-wa-divider"></div>
+
 
           {/* Chat List */}
           <div className="flex-1 overflow-y-auto w-full">

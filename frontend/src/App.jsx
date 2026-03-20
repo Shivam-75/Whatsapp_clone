@@ -4,7 +4,6 @@ import { Toaster } from "react-hot-toast";
 import FarLeftSidebar from './components/layout/FarLeftSidebar';
 import LeftSidebar from './components/layout/LeftSidebar';
 import StatusPage from './pages/StatusPage';
-import SettingsPage from './pages/SettingsPage';
 import WelcomeScreen from './components/layout/WelcomeScreen';
 import ChatWindow from './components/layout/ChatWindow';
 import GroupsPage from './pages/GroupsPage';
@@ -78,7 +77,6 @@ function App() {
           <Route path="/profile" element={authUser ? <ProfilePage /> : <Navigate to="/login" />} />
           <Route path="/status" element={authUser ? <StatusPage /> : <Navigate to="/login" />} />
           <Route path="/groups" element={authUser ? <GroupsPage /> : <Navigate to="/login" />} />
-          <Route path="/settings" element={authUser ? <SettingsPage /> : <Navigate to="/login" />} />
         </Routes>
       </div>
       <Toaster position="top-center" reverseOrder={false} />

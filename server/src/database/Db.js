@@ -4,9 +4,10 @@ import mongoose from "mongoose";
 const Db = async () => {
   try {
     const conn = await mongoose.connect(process.env.MONGO_DB_URL);
-    console.log("📡 Database Connected:", conn.connection.host);
+    console.log(`MongoDB Connected: ${conn.connection.host}`);
   } catch (err) {
-    console.log("❌ Database Error:", err.message);
+    console.error(`MongoDB Error: ${err.message}`);
+    process.exit(1);
   }
 };
 

@@ -3,6 +3,8 @@ import { axiosInstance } from "../lib/axios.js";
 import { io } from "socket.io-client";
 import toast from "react-hot-toast";
 import { useChatStore } from "./useChatStore";
+import { useStatusStore } from "./useStatusStore";
+import { useGroupStore } from "./useGroupStore";
 
 const BASE_URL = "http://localhost:5001";
 
@@ -21,7 +23,6 @@ export const useAuthStore = create((set, get) => ({
       set({ authUser: res.data });
       get().connectSocket();
     } catch (error) {
-      console.log("Error in checkAuth:", error);
       set({ authUser: null });
     } finally {
       set({ isCheckingAuth: false });
@@ -37,7 +38,6 @@ export const useAuthStore = create((set, get) => ({
       get().connectSocket();
     } catch (error) {
       toast.error(error.response?.data?.error || "Signup failed");
-      console.log("Signup error:", error);
     } finally {
       set({ isSigningUp: false });
     }
@@ -52,7 +52,6 @@ export const useAuthStore = create((set, get) => ({
       get().connectSocket();
     } catch (error) {
       toast.error(error.response?.data?.error || "Login failed");
-      console.log("Login error:", error);
     } finally {
       set({ isLoggingIn: false });
     }
@@ -66,7 +65,6 @@ export const useAuthStore = create((set, get) => ({
       get().disconnectSocket();
     } catch (error) {
       toast.error("Logout failed");
-      console.log("Logout error:", error);
     }
   },
 
@@ -82,7 +80,6 @@ export const useAuthStore = create((set, get) => ({
       return true;
     } catch (error) {
       toast.error(error.response?.data?.error || "Update failed");
-      console.log("Error in update profile:", error);
       return false;
     } finally {
       set({ isUpdatingProfile: false });
@@ -107,9 +104,15 @@ export const useAuthStore = create((set, get) => ({
     // Register message listeners immediately when socket is ready
     // This closes the race condition window between socket connect and App.jsx useEffect
     socket.on("connect", () => {
-      console.log("✅ Socket connected — setting up message subscriptions");
+      console.log("Socket connected:", socket.id);
+      socket.emit("register", authUser._id);
+      
+      // Resubscribe all stores
       useChatStore.getState().subscribeToMessages();
-      // Re-fetch unread counts from DB so badge is always accurate after refresh
+      useStatusStore.getState().subscribeToStatusUpdates();
+      useGroupStore.getState().subscribeToGroupUpdates();
+      
+      // Re-fetch essential data
       useChatStore.getState().getLastMessages();
     });
   },

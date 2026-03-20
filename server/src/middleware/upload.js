@@ -8,7 +8,7 @@ const __dirname = path.dirname(__filename);
 
 // Ensure upload directories exist
 const uploadDir = path.join(__dirname, "../../public/uploads");
-const dirs = ["profiles", "messages", "statuses"].map(d => path.join(uploadDir, d));
+const dirs = ["profiles", "messages", "status"].map(d => path.join(uploadDir, d));
 dirs.forEach(d => { if (!fs.existsSync(d)) fs.mkdirSync(d, { recursive: true }); });
 
 // Storage config
@@ -48,16 +48,14 @@ export const deleteUploadedFile = (fileUrl) => {
     const filePath = path.join(__dirname, "../../public", fileUrl);
     if (fs.existsSync(filePath)) {
       fs.unlinkSync(filePath);
-      console.log("Deleted file:", filePath);
     }
   } catch (err) {
-    console.error("Error deleting file:", err.message);
   }
 };
 
 // Middleware setters for different upload folders
 export const uploadProfile = (req, res, next) => { req.uploadFolder = "profiles"; next(); };
 export const uploadMessage = (req, res, next) => { req.uploadFolder = "messages"; next(); };
-export const uploadStatus = (req, res, next) => { req.uploadFolder = "statuses"; next(); };
+export const uploadStatus = (req, res, next) => { req.uploadFolder = "status"; next(); };
 
 export default upload;

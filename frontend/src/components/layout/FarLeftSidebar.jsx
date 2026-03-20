@@ -1,5 +1,5 @@
 import React from 'react';
-import { MessageSquare, RefreshCcw, LayoutGrid, Users, Settings, User, LogOut, X } from 'lucide-react';
+import { MessageSquare, RefreshCcw, LayoutGrid, Users, User, LogOut, X } from 'lucide-react';
 import { useAuthStore } from '../../store/useAuthStore';
 import { useChatStore } from '../../store/useChatStore';
 import { Link, useNavigate } from 'react-router-dom';
@@ -90,16 +90,7 @@ const FarLeftSidebar = () => {
       </div>
       <div className="flex flex-col gap-4 w-full items-center">
         {/* Bottom Icons */}
-        <Link 
-          to="/settings"
-          onClick={() => {
-              setDrawerOpen(false);
-              useChatStore.getState().setSidebarVisible(false);
-          }}
-          className="w-10 h-10 rounded-full flex items-center justify-center cursor-pointer text-wa-text-muted hover:bg-wa-bg-hover group transition-colors"
-        >
-          <Settings className="w-5 h-5 text-current group-hover:text-wa-text" />
-        </Link>
+
           <button 
             onClick={() => logout()}
             className="w-10 h-10 rounded-full flex items-center justify-center cursor-pointer text-wa-text-muted hover:bg-wa-bg-hover group transition-colors"

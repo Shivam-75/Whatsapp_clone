@@ -20,6 +20,16 @@ const userSchema = new mongoose.Schema(
       type: String,
       default: "Hey there! I am using WhatsApp.",
     },
+    blockedUsers: [
+      {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "User",
+      },
+    ],
+    disappearingDelay: {
+      type: Number,
+      default: 0, // 0 = off, otherwise seconds (e.g., 86400 for 24h)
+    },
   },
   { timestamps: true }
 );

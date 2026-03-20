@@ -15,7 +15,6 @@ export const useStatusStore = create((set, get) => ({
       const res = await axiosInstance.get("/status");
       set({ statuses: res.data });
     } catch (error) {
-      console.error("Error fetching statuses:", error);
     } finally {
       set({ isLoading: false });
     }
@@ -26,21 +25,31 @@ export const useStatusStore = create((set, get) => ({
       const res = await axiosInstance.get("/status/my");
       set({ myStatuses: res.data });
     } catch (error) {
-      console.error("Error fetching my statuses:", error);
     }
   },
 
   createStatus: async (statusData) => {
     set({ isCreating: true });
     try {
-      await axiosInstance.post("/status", statusData);
+      let payload = statusData;
+      let headers = {};
+
+      if (statusData.type === "image" && statusData.image) {
+        const formData = new FormData();
+        formData.append("type", "image");
+        formData.append("image", statusData.image);
+        if (statusData.caption) formData.append("caption", statusData.caption);
+        payload = formData;
+        headers = { "Content-Type": "multipart/form-data" };
+      }
+
+      await axiosInstance.post("/status", payload, { headers });
       toast.success("Status posted!");
       // Refresh both lists
       get().fetchMyStatuses();
       get().fetchStatuses();
     } catch (error) {
-      toast.error("Failed to post status");
-      console.error("Error creating status:", error);
+      toast.error(error.response?.data?.error || "Failed to post status");
     } finally {
       set({ isCreating: false });
     }
@@ -50,7 +59,6 @@ export const useStatusStore = create((set, get) => ({
     try {
       await axiosInstance.post(`/status/${statusId}/view`);
     } catch (error) {
-      console.error("Error viewing status:", error);
     }
   },
 
@@ -61,7 +69,6 @@ export const useStatusStore = create((set, get) => ({
       get().fetchMyStatuses();
     } catch (error) {
       toast.error("Failed to delete status");
-      console.error("Error deleting status:", error);
     }
   },
 
@@ -72,7 +79,6 @@ export const useStatusStore = create((set, get) => ({
 
     socket.off("newStatus"); // prevent duplicates
     socket.on("newStatus", () => {
-      console.log("🔔 Socket: newStatus received, refreshing...");
       get().fetchStatuses();
       get().fetchMyStatuses();
     });

@@ -10,7 +10,12 @@ const messageSchema = new mongoose.Schema(
     receiverId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
-      required: true,
+      required: false, // Optional for group messages
+    },
+    groupId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Group",
+      required: false,
     },
     text: {
       type: String,
@@ -28,7 +33,28 @@ const messageSchema = new mongoose.Schema(
       type: String,
       enum: ["sent", "delivered", "read"],
       default: "sent",
-    }
+    },
+    disappearingDelay: {
+      type: Number,
+      default: 0,
+    },
+    expiresAt: {
+      type: Date,
+      index: { expires: 0 }, // TTL index
+    },
+    replyTo: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Message",
+      required: false,
+    },
+    isPinned: {
+      type: Boolean,
+      default: false,
+    },
+    isForwarded: {
+      type: Boolean,
+      default: false,
+    },
   },
   { timestamps: true }
 );

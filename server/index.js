@@ -53,16 +53,31 @@ app.get("/", (req, res) => {
 // Socket.io connection logic
 const userSocketMap = {}; // userId : socketId (tracks at least one active socket for online status)
 
-io.on("connection", (socket) => {
+io.on("connection", async (socket) => {
   const userId = socket.handshake.query.userId;
   if (userId) {
-     userSocketMap[userId] = socket.id;
-     socket.join(userId); // Join a room named after the userId
-     console.log(`User ${userId} connected (Socket: ${socket.id})`);
-     io.emit("getOnlineUsers", Object.keys(userSocketMap));
-  } else {
-     console.log("User connected without userId", socket.id);
-  }
+      userSocketMap[userId] = socket.id;
+      socket.join(userId); 
+      
+      // JOIN ALL GROUP ROOMS
+      try {
+        const Group = (await import("./src/models/Group.js")).default;
+        const groups = await Group.find({ members: userId });
+        groups.forEach(group => {
+            socket.join(String(group._id));
+            console.log(`Socket ${socket.id} auto-joined group: ${group.name}`);
+        });
+      } catch (err) {
+        console.error("Error joining groups on connect:", err);
+      }
+
+      io.emit("getOnlineUsers", Object.keys(userSocketMap));
+  } 
+
+  socket.on("joinGroup", (groupId) => {
+      socket.join(String(groupId));
+      console.log(`Socket ${socket.id} joined group room: ${groupId}`);
+  });
 
   socket.on("register", (senderId) => {
     userSocketMap[senderId] = socket.id;
@@ -82,7 +97,6 @@ io.on("connection", (socket) => {
           }
        }
     } catch (err) {
-       console.error("Error in messageDelivered socket handler:", err);
     }
   });
 
@@ -101,7 +115,6 @@ io.on("connection", (socket) => {
   });
 
   socket.on("disconnect", () => {
-    console.log("User disconnected", socket.id);
     for (let user in userSocketMap) {
       if (userSocketMap[user] === socket.id) {
         delete userSocketMap[user];
@@ -112,14 +125,12 @@ io.on("connection", (socket) => {
 });
 
 export const getReceiverSocketId = (receiverId) => {
-  // We use rooms now, so return the room name (userId) if user is online
-  return userSocketMap[receiverId] ? receiverId : null;
+  if (!receiverId) return null;
+  const idStr = String(receiverId);
+  return userSocketMap[idStr] ? idStr : null;
 };
 
 Db().then(() => {
-  server.listen(PORT, "0.0.0.0", () =>
-    console.log("🚀 Server & Socket.io running at http://localhost:" + PORT)
-  );
+  server.listen(PORT, "0.0.0.0", () => {});
 }).catch(err => {
-  console.error("Database connection failed", err);
 });

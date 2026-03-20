@@ -1,14 +1,16 @@
 import React, { useState } from 'react';
 import { useAuthStore } from '../store/useAuthStore';
 import { useChatStore } from '../store/useChatStore';
-import { ArrowLeft, Camera, User, Info, Check, Pencil } from 'lucide-react';
+import { ArrowLeft, Camera, User, Info, Check, Pencil, Loader } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { getMediaUrl } from '../lib/utils';
 
 const ProfilePage = () => {
   const { authUser, isUpdatingProfile, updateProfile } = useAuthStore();
   const { setSidebarVisible } = useChatStore();
   const [about, setAbout] = useState(authUser?.about || "Hey there! I am using WhatsApp.");
   const [isEditingAbout, setIsEditingAbout] = useState(false);
+  const [previewImg, setPreviewImg] = useState(null);
   const fileInputRef = React.useRef(null);
   const navigate = useNavigate();
 
@@ -31,9 +33,18 @@ const ProfilePage = () => {
        return;
     }
 
+    // Optimistic preview
+    const reader = new FileReader();
+    reader.onload = () => setPreviewImg(reader.result);
+    reader.readAsDataURL(file);
+
     const formData = new FormData();
     formData.append("profilePic", file);
-    await updateProfile(formData);
+    const success = await updateProfile(formData);
+    
+    // Clear preview if update failed or stay with new profilePic
+    if (!success) setPreviewImg(null);
+    else setTimeout(() => setPreviewImg(null), 1000); // Small delay to prevent flicker
   };
 
   return (
@@ -60,12 +71,12 @@ const ProfilePage = () => {
                onChange={handleImageUpload} 
                accept="image/*"
              />
-             <div 
-               onClick={() => fileInputRef.current?.click()}
-               className="w-50 h-50 rounded-full bg-wa-divider flex items-center justify-center overflow-hidden relative"
-             >
-                {authUser?.profilePic ? (
-                   <img src={authUser.profilePic} alt="Profile" className="w-full h-full object-cover" />
+              <div 
+                onClick={() => fileInputRef.current?.click()}
+                className="w-50 h-50 rounded-full bg-wa-divider flex items-center justify-center overflow-hidden relative border-4 border-[#0b141a]"
+              >
+                {(previewImg || authUser?.profilePic) ? (
+                   <img src={previewImg || getMediaUrl(authUser.profilePic)} alt="Profile" className="w-full h-full object-cover" />
                 ) : (
                    <div className="flex flex-col items-center justify-center text-wa-text-muted">
                       <User className="w-24 h-24 mb-1" />

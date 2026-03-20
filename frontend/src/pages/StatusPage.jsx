@@ -5,6 +5,7 @@ import { useAuthStore } from '../store/useAuthStore';
 import { ArrowLeft, Plus, X, Send, Image, Loader, Eye, Trash2, ChevronLeft, ChevronRight } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import Avatar from '../components/common/Avatar';
+import { getMediaUrl } from '../lib/utils';
 
 const STATUS_COLORS = [
   '#00a884', '#128C7E', '#075E54',
@@ -136,7 +137,7 @@ const StatusViewer = ({ statusGroup, onClose, onView, isOwnStatus }) => {
         ) : (
           <div className="w-full h-full flex flex-col items-center justify-center bg-black">
             <img
-              src={current.content}
+              src={getMediaUrl(current.content)}
               alt=""
               className="max-w-full max-h-[80vh] object-contain"
             />
@@ -197,7 +198,8 @@ const StatusCreator = ({ onClose, onCreate, isCreating }) => {
   const [mode, setMode] = useState(null); // null, 'text', 'image'
   const [text, setText] = useState('');
   const [bgColor, setBgColor] = useState(STATUS_COLORS[0]);
-  const [imageData, setImageData] = useState(null);
+  const [imageData, setImageData] = useState(null); // Preview URL
+  const [imageFile, setImageFile] = useState(null); // Raw File object
   const [caption, setCaption] = useState('');
   const fileInputRef = useRef(null);
 
@@ -208,6 +210,7 @@ const StatusCreator = ({ onClose, onCreate, isCreating }) => {
       alert('Image must be less than 5MB');
       return;
     }
+    setImageFile(file);
     const reader = new FileReader();
     reader.onload = () => {
       setImageData(reader.result);
@@ -219,8 +222,8 @@ const StatusCreator = ({ onClose, onCreate, isCreating }) => {
   const handlePost = () => {
     if (mode === 'text' && text.trim()) {
       onCreate({ type: 'text', content: text.trim(), backgroundColor: bgColor });
-    } else if (mode === 'image' && imageData) {
-      onCreate({ type: 'image', content: imageData, caption: caption.trim() });
+    } else if (mode === 'image' && imageFile) {
+      onCreate({ type: 'image', image: imageFile, caption: caption.trim() });
     }
   };
 
@@ -367,7 +370,7 @@ const StatusRingAvatar = ({ user, hasUnviewed, statusCount = 1, onClick, size = 
       {/* Avatar */}
       <div className="w-full h-full rounded-full overflow-hidden bg-wa-accent/60 flex items-center justify-center text-white font-bold text-lg">
         {user.profilePic ? (
-          <img src={user.profilePic} alt="" className="w-full h-full object-cover" />
+          <img src={getMediaUrl(user.profilePic)} alt="" className="w-full h-full object-cover" />
         ) : (
           <span>{user.username?.charAt(0).toUpperCase() || '?'}</span>
         )}

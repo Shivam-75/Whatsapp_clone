@@ -221,7 +221,26 @@ const ChatWindow = () => {
     const container = messagesContainerRef.current;
     if (!container) return;
     container.addEventListener("scroll", handleScroll, { passive: true });
-    return () => container.removeEventListener("scroll", handleScroll);
+    
+    // Scroll to bottom when keyboard opens (resize event)
+    const handleResize = () => {
+      if (messageEndRef.current) {
+        messageEndRef.current.scrollIntoView({ behavior: "smooth", block: "end" });
+      }
+    };
+
+    window.addEventListener("resize", handleResize);
+    if (window.visualViewport) {
+      window.visualViewport.addEventListener("resize", handleResize);
+    }
+
+    return () => {
+      container.removeEventListener("scroll", handleScroll);
+      window.removeEventListener("resize", handleResize);
+      if (window.visualViewport) {
+        window.visualViewport.removeEventListener("resize", handleResize);
+      }
+    };
   }, [handleScroll]);
 
   const handleInputChange = useCallback((e) => {
@@ -668,7 +687,7 @@ const ChatWindow = () => {
 
       {/* Input area */}
       {!isSelecting && !isBlocked && (
-        <div className="min-h-[80px] md:min-h-[62px] flex items-center px-4 gap-3 shrink-0 relative pb-6 md:pb-0" style={{ background: "#202c33" }}>
+        <div className="min-h-[70px] md:min-h-[62px] flex items-center px-4 gap-3 shrink-0 relative pb-4 md:pb-0" style={{ background: "#202c33" }}>
           <div className="emoji-picker-container relative">
             <Smile 
               onClick={() => setShowEmojiPicker(!showEmojiPicker)}
@@ -711,6 +730,7 @@ const ChatWindow = () => {
               style={{ background: "#2a3942" }}
               value={text}
               onChange={handleInputChange}
+              onFocus={() => setTimeout(() => messageEndRef.current?.scrollIntoView({ behavior: "smooth", block: "end" }), 300)}
             />
             <button type="submit" className="text-[#8696a0] hover:text-[#00a884] transition-colors">
               <Send className="w-6 h-6" />

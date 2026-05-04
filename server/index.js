@@ -28,7 +28,7 @@ export const io = new Server(server, {
 });
 
 app.use(cors({
-  origin: [process.env.CLIENT_URL, "https://whatsapp-cp7emptiq-ss-projects-38a3890a.vercel.app"],
+  origin: ["https://whatsapp-cp7emptiq-ss-projects-38a3890a.vercel.app", "https://whatsapp-clone-gamma-three.vercel.app", process.env.CLIENT_URL],
   credentials: true,
   methods: ["GET", "POST", "PUT", "PATCH", "DELETE"]
 }));

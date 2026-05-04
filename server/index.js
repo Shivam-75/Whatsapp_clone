@@ -28,7 +28,7 @@ export const io = new Server(server, {
 });
 
 app.use(cors({
-  origin: ["http://localhost:5173", "https://whatsapp-clone-6awq.vercel.app"],
+  origin: [process.env.CLIENT_URL, "https://whatsapp-clone-6awq.vercel.app"],
   credentials: true
 }));
 app.use(compression());
@@ -36,6 +36,11 @@ app.use(express.json({ limit: "10mb" }));
 app.use(express.urlencoded({ extended: true, limit: "10mb" }));
 app.use(cookieParser());
 app.use(morgan("dev"));
+
+// Trust proxy for secure cookies in production
+if (process.env.NODE_ENV === "production") {
+  app.set("trust proxy", 1);
+}
 
 // Serve static uploads
 app.use("/uploads", express.static("public/uploads"));
@@ -48,6 +53,20 @@ app.use("/api/groups", groupRoutes);
 
 app.get("/", (req, res) => {
   res.send("Welcome to WhatsApp Clone API with Socket.io!");
+});
+
+// 404 Handler
+app.use((req, res, next) => {
+  res.status(404).json({ message: "Route not found" });
+});
+
+// Global Error Handler
+app.use((err, req, res, next) => {
+  console.error(err.stack);
+  res.status(500).json({
+    message: "Internal Server Error",
+    error: process.env.NODE_ENV === "production" ? {} : err.message
+  });
 });
 
 // Socket.io connection logic
@@ -130,7 +149,17 @@ export const getReceiverSocketId = (receiverId) => {
   return userSocketMap[idStr] ? idStr : null;
 };
 
-Db().then(() => {
-  server.listen(PORT, "0.0.0.0", () => { });
-}).catch(err => {
-});
+// Initialize database and start server
+Db()
+  .then(() => {
+    if (process.env.NODE_ENV !== "production") {
+      server.listen(PORT, () => {
+        console.log(`Server is running on port ${PORT}`);
+      });
+    }
+  })
+  .catch((err) => {
+    console.error("Failed to connect to database:", err);
+  });
+
+export default app;

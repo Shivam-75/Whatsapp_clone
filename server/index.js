@@ -169,11 +169,9 @@ export const getReceiverSocketId = (receiverId) => {
 // Initialize database and start server
 Db()
   .then(() => {
-    if (process.env.NODE_ENV !== "production") {
-      server.listen(PORT, () => {
-        console.log(`Server is running on port ${PORT}`);
-      });
-    }
+    server.listen(PORT, () => {
+      console.log(`Server is running on port ${PORT}`);
+    });
   })
   .catch((err) => {
     console.error("Failed to connect to database:", err);

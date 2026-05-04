@@ -27,24 +27,27 @@ export const io = new Server(server, {
   },
 });
 
-app.use(cors({
-  origin: (origin, callback) => {
-    const allowed = [
-      "https://whatsapp-cp7emptiq-ss-projects-38a3890a.vercel.app",
-      "https://whatsapp-clone-gamma-three.vercel.app",
-      process.env.CLIENT_URL
-    ].filter(Boolean);
+app.use((req, res, next) => {
+  const origin = req.headers.origin;
+  const allowedOrigins = [
+    "https://whatsapp-cp7emptiq-ss-projects-38a3890a.vercel.app",
+    "https://whatsapp-clone-gamma-three.vercel.app",
+    process.env.CLIENT_URL
+  ].filter(Boolean);
 
-    if (!origin || allowed.includes(origin) || origin.endsWith(".vercel.app")) {
-      callback(null, true);
-    } else {
-      callback(new Error('Not allowed by CORS'));
-    }
-  },
-  credentials: true,
-  methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
-  allowedHeaders: ["Content-Type", "Authorization", "Cookie"]
-}));
+  if (origin && (allowedOrigins.includes(origin) || origin.endsWith(".vercel.app"))) {
+    res.setHeader("Access-Control-Allow-Origin", origin);
+  }
+
+  res.setHeader("Access-Control-Allow-Credentials", "true");
+  res.setHeader("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, PATCH, OPTIONS");
+  res.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization, Cookie, X-Requested-With");
+
+  if (req.method === "OPTIONS") {
+    return res.status(200).end();
+  }
+  next();
+});
 app.use(compression());
 app.use(express.json({ limit: "10mb" }));
 app.use(express.urlencoded({ extended: true, limit: "10mb" }));

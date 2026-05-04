@@ -27,22 +27,23 @@ export const io = new Server(server, {
   },
 });
 
-const allowedOrigins = [
-  "https://whatsapp-cp7emptiq-ss-projects-38a3890a.vercel.app",
-  "https://whatsapp-clone-gamma-three.vercel.app",
-  process.env.CLIENT_URL
-].filter(Boolean);
-
 app.use(cors({
-  origin: function (origin, callback) {
-    if (!origin || allowedOrigins.indexOf(origin) !== -1) {
+  origin: (origin, callback) => {
+    const allowed = [
+      "https://whatsapp-cp7emptiq-ss-projects-38a3890a.vercel.app",
+      "https://whatsapp-clone-gamma-three.vercel.app",
+      process.env.CLIENT_URL
+    ].filter(Boolean);
+
+    if (!origin || allowed.includes(origin) || origin.endsWith(".vercel.app")) {
       callback(null, true);
     } else {
       callback(new Error('Not allowed by CORS'));
     }
   },
   credentials: true,
-  methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"]
+  methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+  allowedHeaders: ["Content-Type", "Authorization", "Cookie"]
 }));
 app.use(compression());
 app.use(express.json({ limit: "10mb" }));

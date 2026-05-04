@@ -6,7 +6,7 @@ import { useChatStore } from "./useChatStore";
 import { useStatusStore } from "./useStatusStore";
 import { useGroupStore } from "./useGroupStore";
 
-const BASE_URL = "http://localhost:5001";
+const BASE_URL = import.meta.env.VITE_URL;
 
 export const useAuthStore = create((set, get) => ({
   authUser: null,
@@ -106,12 +106,12 @@ export const useAuthStore = create((set, get) => ({
     socket.on("connect", () => {
       console.log("Socket connected:", socket.id);
       socket.emit("register", authUser._id);
-      
+
       // Resubscribe all stores
       useChatStore.getState().subscribeToMessages();
       useStatusStore.getState().subscribeToStatusUpdates();
       useGroupStore.getState().subscribeToGroupUpdates();
-      
+
       // Re-fetch essential data
       useChatStore.getState().getLastMessages();
     });

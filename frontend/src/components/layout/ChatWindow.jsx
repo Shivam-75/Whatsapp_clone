@@ -668,7 +668,7 @@ const ChatWindow = () => {
 
       {/* Input area */}
       {!isSelecting && !isBlocked && (
-        <div className="h-[62px] flex items-center px-4 gap-3 shrink-0 relative" style={{ background: "#202c33" }}>
+        <div className="min-h-[80px] md:min-h-[62px] flex items-center px-4 gap-3 shrink-0 relative pb-6 md:pb-0" style={{ background: "#202c33" }}>
           <div className="emoji-picker-container relative">
             <Smile 
               onClick={() => setShowEmojiPicker(!showEmojiPicker)}

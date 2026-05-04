@@ -631,7 +631,7 @@ const GroupChatView = ({ group, onBack }) => {
       )}
 
       {/* Input */}
-      <div className="h-[62px] flex items-center px-4 gap-3 shrink-0" style={{ background: '#202c33' }}>
+      <div className="min-h-[80px] md:min-h-[62px] flex items-center px-4 gap-3 shrink-0 pb-6 md:pb-0" style={{ background: '#202c33' }}>
         <input 
           type="file" 
           ref={fileInputRef} 

@@ -47,7 +47,7 @@ function App() {
   }
 
   return (
-    <div className="flex flex-col md:flex-row h-screen w-full overflow-hidden text-wa-text bg-wa-bg relative">
+    <div className="flex flex-col md:flex-row h-[100dvh] w-full overflow-hidden text-wa-text bg-wa-bg relative">
       {authUser && (
         <div className={clsx(
           "shrink-0 z-30 transition-all duration-300",

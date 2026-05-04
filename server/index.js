@@ -29,7 +29,8 @@ export const io = new Server(server, {
 
 app.use(cors({
   origin: [process.env.CLIENT_URL, "https://whatsapp-novopcyl2-ss-projects-38a3890a.vercel.app/"],
-  credentials: true
+  credentials: true,
+  methods: ["GET", "POST", "PUT", "PATCH", "DELETE"]
 }));
 app.use(compression());
 app.use(express.json({ limit: "10mb" }));

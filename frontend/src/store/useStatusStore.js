@@ -2,25 +2,25 @@ import { create } from "zustand";
 import { axiosInstance } from "../lib/axios";
 import { useAuthStore } from "./useAuthStore";
 import toast from "react-hot-toast";
-6: 
-7: // --- localStorage helpers ---
-8: const STATUS_KEY = "wa_statuses";
-9: const MY_STATUS_KEY = "wa_my_statuses";
-10: 
-11: const loadFromStorage = (key, defaultValue) => {
-12:   try {
-13:     const stored = localStorage.getItem(key);
-14:     return stored ? JSON.parse(stored) : defaultValue;
-15:   } catch {
-16:     return defaultValue;
-17:   }
-18: };
-19: 
-20: const saveToStorage = (key, data) => {
-21:   try {
-22:     localStorage.setItem(key, JSON.stringify(data));
-23:   } catch {}
-24: };
+
+// --- localStorage helpers ---
+const STATUS_KEY = "wa_statuses";
+const MY_STATUS_KEY = "wa_my_statuses";
+
+const loadFromStorage = (key, defaultValue) => {
+  try {
+    const stored = localStorage.getItem(key);
+    return stored ? JSON.parse(stored) : defaultValue;
+  } catch {
+    return defaultValue;
+  }
+};
+
+const saveToStorage = (key, data) => {
+  try {
+    localStorage.setItem(key, JSON.stringify(data));
+  } catch {}
+};
 
 export const useStatusStore = create((set, get) => ({
   statuses: loadFromStorage(STATUS_KEY, []),

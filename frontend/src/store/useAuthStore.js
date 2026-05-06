@@ -7,30 +7,30 @@ import { useStatusStore } from "./useStatusStore";
 import { useGroupStore } from "./useGroupStore";
 
 const BASE_URL = import.meta.env.VITE_URL;
-11: 
-12: // --- localStorage helpers ---
-13: const AUTH_KEY = "wa_auth_user";
-14: 
-15: const loadFromStorage = (key, defaultValue) => {
-16:   try {
-17:     const stored = localStorage.getItem(key);
-18:     return stored ? JSON.parse(stored) : defaultValue;
-19:   } catch {
-20:     return defaultValue;
-21:   }
-22: };
-23: 
-24: const saveToStorage = (key, data) => {
-25:   try {
-26:     localStorage.setItem(key, JSON.stringify(data));
-27:   } catch {}
-28: };
-29: 
-30: const removeFromStorage = (key) => {
-31:   try {
-32:     localStorage.removeItem(key);
-33:   } catch {}
-34: };
+
+// --- localStorage helpers ---
+const AUTH_KEY = "wa_auth_user";
+
+const loadFromStorage = (key, defaultValue) => {
+  try {
+    const stored = localStorage.getItem(key);
+    return stored ? JSON.parse(stored) : defaultValue;
+  } catch {
+    return defaultValue;
+  }
+};
+
+const saveToStorage = (key, data) => {
+  try {
+    localStorage.setItem(key, JSON.stringify(data));
+  } catch {}
+};
+
+const removeFromStorage = (key) => {
+  try {
+    localStorage.removeItem(key);
+  } catch {}
+};
 
 export const useAuthStore = create((set, get) => ({
   authUser: loadFromStorage(AUTH_KEY, null),

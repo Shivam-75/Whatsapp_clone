@@ -194,7 +194,7 @@ const CreateGroupModal = React.memo(({ onClose, onCreate }) => {
       </div>
     </div>
   );
-};
+});
 
 // ═══════════════════════════════════════════
 //  GROUP CHAT VIEW
@@ -624,7 +624,7 @@ const GroupChatView = React.memo(({ group, onBack }) => {
       </div>
     </div>
   );
-};
+});
 
 // ═══════════════════════════════════════════
 //  MAIN GROUPS PAGE

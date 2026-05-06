@@ -2,9 +2,28 @@ import { create } from "zustand";
 import { axiosInstance } from "../lib/axios";
 import { useAuthStore } from "./useAuthStore";
 import toast from "react-hot-toast";
+6: 
+7: // --- localStorage helpers ---
+8: const GROUPS_KEY = "wa_groups";
+9: const GROUP_MSG_CACHE_PREFIX = "wa_group_msgs_";
+10: 
+11: const loadFromStorage = (key, defaultValue) => {
+12:   try {
+13:     const stored = localStorage.getItem(key);
+14:     return stored ? JSON.parse(stored) : defaultValue;
+15:   } catch {
+16:     return defaultValue;
+17:   }
+18: };
+19: 
+20: const saveToStorage = (key, data) => {
+21:   try {
+22:     localStorage.setItem(key, JSON.stringify(data));
+23:   } catch {}
+24: };
 
 export const useGroupStore = create((set, get) => ({
-  groups: [],
+  groups: loadFromStorage(GROUPS_KEY, []),
   selectedGroup: null,
   groupMessages: [],
   isLoading: false,
@@ -41,6 +60,7 @@ export const useGroupStore = create((set, get) => ({
     try {
       const res = await axiosInstance.get("/groups");
       set({ groups: res.data });
+      saveToStorage(GROUPS_KEY, res.data);
     } catch (error) {
       console.error("Error fetching groups:", error);
     } finally {
@@ -76,12 +96,19 @@ export const useGroupStore = create((set, get) => ({
         socket.emit("joinGroup", groupId);
     }
 
-    set({ isMessagesLoading: true, hasMoreMessages: false });
+    const cached = loadFromStorage(`${GROUP_MSG_CACHE_PREFIX}${groupId}`, []);
+    set({ groupMessages: [...cached, ...optimisticMsgs], isMessagesLoading: cached.length === 0, hasMoreMessages: false });
+
     try {
       const res = await axiosInstance.get(`/groups/${groupId}/messages?limit=20`);
-      set({ 
-        groupMessages: [...res.data, ...optimisticMsgs],
-        hasMoreMessages: res.data.length >= 20
+      set((state) => {
+        const merged = [...res.data, ...optimisticMsgs];
+        const cacheMsgs = merged.slice(-20);
+        saveToStorage(`${GROUP_MSG_CACHE_PREFIX}${groupId}`, cacheMsgs);
+        return { 
+          groupMessages: merged,
+          hasMoreMessages: res.data.length >= 20
+        };
       });
     } catch (error) {
       console.error("Error fetching group messages:", error);

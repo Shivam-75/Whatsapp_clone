@@ -9,6 +9,8 @@ export const useGroupStore = create((set, get) => ({
   groupMessages: [],
   isLoading: false,
   isMessagesLoading: false,
+  hasMoreMessages: false,
+  isLoadingMore: false,
   replyingTo: null,
 
   setReplyingTo: (msg) => set({ replyingTo: msg }),
@@ -74,14 +76,41 @@ export const useGroupStore = create((set, get) => ({
         socket.emit("joinGroup", groupId);
     }
 
-    set({ isMessagesLoading: true });
+    set({ isMessagesLoading: true, hasMoreMessages: false });
     try {
-      const res = await axiosInstance.get(`/groups/${groupId}/messages?limit=40`);
-      set({ groupMessages: [...res.data, ...optimisticMsgs] });
+      const res = await axiosInstance.get(`/groups/${groupId}/messages?limit=20`);
+      set({ 
+        groupMessages: [...res.data, ...optimisticMsgs],
+        hasMoreMessages: res.data.length >= 20
+      });
     } catch (error) {
       console.error("Error fetching group messages:", error);
     } finally {
       set({ isMessagesLoading: false });
+    }
+  },
+
+  loadMoreGroupMessages: async (groupId) => {
+    const { groupMessages, hasMoreMessages, isLoadingMore } = get();
+    if (!hasMoreMessages || isLoadingMore || groupMessages.length === 0) return;
+
+    set({ isLoadingMore: true });
+    try {
+      const oldestMsg = groupMessages[0];
+      const before = oldestMsg.createdAt;
+      const res = await axiosInstance.get(`/groups/${groupId}/messages?limit=20&before=${before}`);
+      if (res.data.length === 0) {
+        set({ hasMoreMessages: false });
+        return;
+      }
+      set(state => ({
+        groupMessages: [...res.data, ...state.groupMessages],
+        hasMoreMessages: res.data.length >= 20
+      }));
+    } catch (error) {
+       console.error("Error loading more group messages:", error);
+    } finally {
+      set({ isLoadingMore: false });
     }
   },
 

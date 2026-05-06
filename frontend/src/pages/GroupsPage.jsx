@@ -8,11 +8,14 @@ import { format, formatDistanceToNow } from 'date-fns';
 import Avatar from '../components/common/Avatar';
 import { axiosInstance } from '../lib/axios';
 import { getMediaUrl } from '../lib/utils';
+import GroupMessageItem from '../components/chat/GroupMessageItem';
+import GroupListItem from '../components/chat/GroupListItem';
+import toast from 'react-hot-toast';
 
 // ═══════════════════════════════════════════
 //  CREATE GROUP MODAL
 // ═══════════════════════════════════════════
-const CreateGroupModal = ({ onClose, onCreate }) => {
+const CreateGroupModal = React.memo(({ onClose, onCreate }) => {
   const [step, setStep] = useState(1); // 1 = select members, 2 = set name
   const [search, setSearch] = useState('');
   const [selectedIds, setSelectedIds] = useState([]);
@@ -196,9 +199,9 @@ const CreateGroupModal = ({ onClose, onCreate }) => {
 // ═══════════════════════════════════════════
 //  GROUP CHAT VIEW
 // ═══════════════════════════════════════════
-const GroupChatView = ({ group, onBack }) => {
+const GroupChatView = React.memo(({ group, onBack }) => {
   const { authUser } = useAuthStore();
-  const { groupMessages, fetchGroupMessages, sendGroupMessage, isMessagesLoading, deleteGroup, deleteGroupMessages, replyingTo, setReplyingTo, pinMessage, forwardMessage } = useGroupStore();
+  const { groupMessages, fetchGroupMessages, loadMoreGroupMessages, sendGroupMessage, isMessagesLoading, hasMoreMessages, isLoadingMore, deleteGroup, deleteGroupMessages, replyingTo, setReplyingTo, pinMessage, forwardMessage } = useGroupStore();
   const { users } = useChatStore();
   const [text, setText] = useState("");
   const [isSelecting, setIsSelecting] = useState(false);
@@ -212,6 +215,8 @@ const GroupChatView = ({ group, onBack }) => {
   const [imagePreviewUrl, setImagePreviewUrl] = useState(null);
   const [showMenu, setShowMenu] = useState(false);
   const messageEndRef = useRef(null);
+  const messagesContainerRef = useRef(null);
+  const prevScrollHeightRef = useRef(0);
   const fileInputRef = useRef(null);
   const authId = String(authUser._id);
   const isAdmin = String(group.admin?._id || group.admin) === authId;
@@ -248,8 +253,27 @@ const GroupChatView = ({ group, onBack }) => {
   }, [group?._id]);
 
   useEffect(() => {
-    messageEndRef.current?.scrollIntoView({ behavior: 'auto' });
-  }, [groupMessages]);
+    if (isMessagesLoading || groupMessages.length === 0) return;
+    const container = messagesContainerRef.current;
+    if (!container) return;
+    
+    const newScrollHeight = container.scrollHeight;
+    if (isLoadingMore) {
+      container.scrollTop += newScrollHeight - prevScrollHeightRef.current;
+    } else {
+      messageEndRef.current?.scrollIntoView({ behavior: 'auto' });
+    }
+    prevScrollHeightRef.current = newScrollHeight;
+  }, [groupMessages, isMessagesLoading, isLoadingMore]);
+
+  const handleScroll = useCallback(() => {
+    const container = messagesContainerRef.current;
+    if (!container) return;
+    if (container.scrollTop < 80 && hasMoreMessages && !isLoadingMore) {
+      prevScrollHeightRef.current = container.scrollHeight;
+      if (group?._id) loadMoreGroupMessages(group._id);
+    }
+  }, [hasMoreMessages, isLoadingMore, group?._id, loadMoreGroupMessages]);
 
   useEffect(() => {
     const handleOutside = (e) => {
@@ -361,7 +385,16 @@ const GroupChatView = ({ group, onBack }) => {
       )}
 
       {/* Messages */}
-      <div className="flex-1 overflow-y-auto px-4 py-3 space-y-1">
+      <div 
+        ref={messagesContainerRef}
+        onScroll={handleScroll}
+        className="flex-1 overflow-y-auto px-4 py-3 space-y-1"
+      >
+        {isLoadingMore && (
+           <div className="flex justify-center py-2">
+             <Loader className="w-5 h-5 animate-spin text-[#00a884]" />
+           </div>
+        )}
         {isMessagesLoading ? (
           <div className="flex items-center justify-center h-full">
             <Loader className="animate-spin text-[#00a884] w-8 h-8" />
@@ -373,100 +406,32 @@ const GroupChatView = ({ group, onBack }) => {
         ) : (
           groupMessages.map((msg) => {
             const isMine = String(msg.senderId?._id || msg.senderId) === authId;
-            const senderName = msg.senderId?.username || 'User';
             const isSelected = selectedMsgIds.has(msg._id);
 
             return (
-              <div 
-                key={msg._id} 
-                id={`msg-${msg._id}`}
-                className={clsx(
-                  "flex w-full group relative transition-all duration-200",
-                  isMine ? 'justify-end' : 'justify-start',
-                  isSelected && "bg-wa-accent/5"
-                )}
-                onClick={() => isSelecting && toggleSelect(msg._id)}
-                onContextMenu={(e) => {
+              <GroupMessageItem
+                key={msg._id}
+                msg={msg}
+                isMine={isMine}
+                isSelected={isSelected}
+                isSelecting={isSelecting}
+                toggleSelect={toggleSelect}
+                handleContextMenu={(e, m) => {
                    e.preventDefault();
                    setContextMenu({
                      x: Math.min(e.pageX, window.innerWidth - 220),
                      y: Math.min(e.pageY, window.innerHeight - 250),
-                     msgId: msg._id,
-                     text: msg.text,
+                     msgId: m._id,
+                     text: m.text,
                      isMine
                    });
                 }}
-              >
-                <div
-                  className={clsx(
-                    "max-w-[75%] px-3 pt-1.5 pb-1 rounded-lg text-[14px] leading-relaxed shadow-md cursor-pointer transition-transform relative",
-                    isMine ? 'rounded-tr-none' : 'rounded-tl-none',
-                    isSelected && "ring-2 ring-wa-accent ring-inset"
-                  )}
-                  style={{ background: isMine ? '#005c4b' : '#202c33', color: '#e9edef' }}
-                >
-                  {!isMine && (
-                    <p className="text-[#00a884] text-xs font-semibold mb-0.5">{senderName}</p>
-                  )}
-
-                  {msg.isForwarded && (
-                    <div className="flex items-center gap-1 mb-1 text-[#8696a0] italic text-[11px]">
-                      <Forward className="w-3 h-3" />
-                      Forwarded
-                    </div>
-                  )}
-
-                  {msg.replyTo && (
-                    <div 
-                      className="mb-1.5 p-2 rounded bg-black/20 border-l-4 border-[#00a884] cursor-pointer hover:bg-black/30 transition-colors"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        const el = document.getElementById(`msg-${msg.replyTo._id || msg.replyTo}`);
-                        el?.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                      }}
-                    >
-                      <p className="text-[11px] font-bold text-[#00a884] truncate">
-                        {msg.replyTo.senderId?._id === authId ? "You" : (msg.replyTo.senderId?.username || "User")}
-                      </p>
-                      <p className="text-[12px] text-[#8696a0] truncate line-clamp-1 italic">
-                        {msg.replyTo.text || "Message"}
-                      </p>
-                    </div>
-                  )}
-
-                  {msg.image && (
-                    <div className="mb-2 rounded overflow-hidden cursor-pointer hover:opacity-95 transition-all">
-                      <img 
-                        src={getMediaUrl(msg.image)} 
-                        alt="Message" 
-                        className="max-w-full h-auto object-cover"
-                        onClick={() => window.open(getMediaUrl(msg.image), '_blank')}
-                      />
-                    </div>
-                  )}
-
-                  <div className="flex flex-col">
-                    <p style={{ whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>{msg.text}</p>
-                    <div className="flex justify-end items-center gap-1 mt-0.5">
-                      <span style={{ fontSize: '10px', color: '#8696a0' }}>
-                        {msg.createdAt ? format(new Date(msg.createdAt), 'h:mm a') : ''}
-                      </span>
-                      {msg.isPinned && <Pin className="w-3 h-3 text-[#00a884]" />}
-                    </div>
-                  </div>
-                  
-                  {/* Select indicator */}
-                  {isSelecting && (
-                    <div className={clsx(
-                      "absolute top-2 w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all",
-                      isSelected ? "bg-wa-accent border-wa-accent" : "border-[#8696a0]",
-                      isMine ? "-left-8" : "-right-8"
-                    )}>
-                      {isSelected && <Check className="w-3 h-3 text-white" />}
-                    </div>
-                  )}
-                </div>
-              </div>
+                authId={authId}
+                onReplyClick={(replyToId) => {
+                  const el = document.getElementById(`msg-${replyToId}`);
+                  el?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                }}
+              />
             );
           })
         )}
@@ -797,72 +762,13 @@ const GroupsPage = () => {
             <p className="text-wa-text-muted text-sm">No groups yet. Create one!</p>
           </div>
         ) : (
-          groups.map((group) => {
-            const lastMsg = group.lastMessage;
-            const isSelected = selectedGroupIds.has(group._id);
-
-            return (
-              <div
-                key={group._id}
-                onClick={() => {
-                  if (isSelectMode) {
-                    setSelectedGroupIds(prev => {
-                      const next = new Set(prev);
-                      if (next.has(group._id)) next.delete(group._id);
-                      else next.add(group._id);
-                      return next;
-                    });
-                  } else {
-                    setSelectedGroup(group);
-                  }
-                }}
-                onContextMenu={(e) => {
-                  if (isSelectMode) return;
-                  e.preventDefault();
-                  const isGroupAdmin = String(group.admin?._id || group.admin) === String(authUser?._id);
-                  setListContextMenu({
-                    x: e.pageX,
-                    y: e.pageY,
-                    groupId: group._id,
-                    isAdmin: isGroupAdmin
-                  });
-                }}
-                className={clsx(
-                  "flex items-center gap-3 px-4 py-3 cursor-pointer transition-colors border-b border-wa-divider relative",
-                  isSelected ? "bg-[#2a3942]" : "hover:bg-wa-bg-hover"
-                )}
-              >
-                {isSelectMode && (
-                  <div className="shrink-0 mr-2">
-                    <div className={clsx(
-                      "w-5 h-5 rounded border flex items-center justify-center transition-all",
-                      isSelected ? "bg-[#00a884] border-[#00a884]" : "border-[#8696a0]"
-                    )}>
-                      {isSelected && <Check className="w-3.5 h-3.5 text-white font-bold" />}
-                    </div>
-                  </div>
-                )}
-                <div className="w-12 h-12 rounded-full bg-[#00a884]/20 flex items-center justify-center shrink-0">
-                  <Users className="w-6 h-6 text-[#00a884]" />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center justify-between">
-                    <p className="text-wa-text text-[16px] font-medium truncate">{group.name}</p>
-                    {lastMsg && (
-                      <span className="text-wa-text-muted text-xs shrink-0 ml-2">
-                        {formatDistanceToNow(new Date(lastMsg.createdAt), { addSuffix: true })}
-                      </span>
-                    )}
-                  </div>
-                  <p className="text-wa-text-muted text-sm truncate">
-                    {lastMsg
-                      ? `${lastMsg.senderId?.username || 'Someone'}: ${lastMsg.text || 'Media'}`
-                      : `${group.members?.length || 0} members`}
-                  </p>
-                </div>
-              </div>
-            );
-          })
+          groups.map((group) => (
+            <GroupListItem 
+              key={group._id} 
+              group={group} 
+              onClick={() => setSelectedGroup(group)} 
+            />
+          ))
         )}
       </div>
 
@@ -904,4 +810,4 @@ const GroupsPage = () => {
   );
 };
 
-export default GroupsPage;
+export default React.memo(GroupsPage);

@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef, useCallback } from "react";
+import React, { useEffect, useState, useRef, useCallback } from "react";
 import { useParams } from "react-router-dom";
 import { useChatStore } from "../../store/useChatStore";
 import { useAuthStore } from "../../store/useAuthStore";
@@ -9,6 +9,9 @@ import { getMediaUrl } from "../../lib/utils";
 import clsx from "clsx";
 import Avatar from "../common/Avatar";
 import toast from "react-hot-toast";
+import MessageItem from "../chat/MessageItem";
+
+const EMOJIS = ["😀","😃","😄","😁","😆","😅","😂","🤣","😊","😇","🙂","🙃","😉","😌","😍","🥰","😘","😗","😙","😚","😋","😛","😝","😜","🤪","🤨","🧐","🤓","😎","🤩","🥳","😏","😒","😞","😔","😟","😕","🙁","☹️","😣","😖","😫","😩","🥺","😢","😭","😤","😠","😡","🤬","🤯","😳","🥵","熟","😱","😨","😰","😥","😓","🤗","🤔","🤭","🤫","🤥","😶","😐","😑","😬","🙄","😯","😦","😧","😮","😲","🥱","😴","🤤","😪","😵","🤐","🥴","🤢","🤮","🤧","😷","🤒","🤕","🤑","🤠","😈","👿","👹","👺","🤡","💩","👻","💀","☠️","👽","👾","🤖","🎃","😺","😸","😻","😼","😽","🙀","😿","😾"];
 
 const ChatWindow = () => {
   const { 
@@ -218,11 +221,6 @@ const ChatWindow = () => {
   }, [hasMoreMessages, isLoadingMore, chatId, selectedUser?._id, loadMoreMessages]);
 
   useEffect(() => {
-    const container = messagesContainerRef.current;
-    if (!container) return;
-    container.addEventListener("scroll", handleScroll, { passive: true });
-    
-    // Scroll to bottom when keyboard opens (resize event)
     const handleResize = () => {
       if (messageEndRef.current) {
         messageEndRef.current.scrollIntoView({ behavior: "smooth", block: "end" });
@@ -235,7 +233,6 @@ const ChatWindow = () => {
     }
 
     return () => {
-      container.removeEventListener("scroll", handleScroll);
       window.removeEventListener("resize", handleResize);
       if (window.visualViewport) {
         window.visualViewport.removeEventListener("resize", handleResize);
@@ -442,7 +439,12 @@ const ChatWindow = () => {
       )}
 
       {/* Messages area */}
-      <div ref={messagesContainerRef} className="flex-1 overflow-y-auto px-4 py-3 space-y-1" style={{ background: "#0b141a" }}>
+      <div 
+        ref={messagesContainerRef} 
+        onScroll={handleScroll}
+        className="flex-1 overflow-y-auto px-4 py-3 space-y-1" 
+        style={{ background: "#0b141a" }}
+      >
         {isLoadingMore && (
           <div className="flex justify-center py-2"><Loader className="w-5 h-5 animate-spin text-[#00a884]" /></div>
         )}
@@ -460,81 +462,19 @@ const ChatWindow = () => {
             const isMine = String(msg.senderId?._id || msg.senderId) === authId;
             const isSelected = selectedMsgIds.has(msg._id);
             return (
-              <div
+              <MessageItem 
                 key={msg._id}
-                onClick={() => isSelecting ? toggleMsgSelect(msg._id) : null}
-                onContextMenu={(e) => handleContextMenu(e, msg)}
-                onTouchStart={() => handleTouchStart(msg)}
-                onTouchEnd={handleTouchEnd}
-                onTouchMove={handleTouchEnd}
-                className={`flex w-full items-center gap-2 transition-colors ${isMine ? "justify-end" : "justify-start"} ${isSelecting ? "cursor-pointer" : ""} ${isSelected ? "opacity-80" : ""}`}
-                style={{ background: isSelected ? "rgba(0,168,132,0.1)" : "transparent", borderRadius: "4px" }}
-                id={`msg-${msg._id}`}
-              >
-                {isSelecting && (
-                  <div className={`shrink-0 w-5 h-5 rounded-full border-2 flex items-center justify-center transition-colors ${isSelected ? "bg-[#00a884] border-[#00a884]" : "border-[#8696a0]"} ${isMine ? "order-last ml-1" : "order-first mr-1"}`}>
-                    {isSelected && <Check className="w-3 h-3 text-white" strokeWidth={3} />}
-                  </div>
-                )}
-                <div
-                  className={`max-w-[75%] px-2 pt-1.5 pb-1 rounded-lg text-[14px] leading-relaxed shadow-md ${isMine ? "rounded-tr-none" : "rounded-tl-none"}`}
-                  style={{ background: isMine ? "#005c4b" : "#202c33", color: "#e9edef" }}
-                >
-                  {msg.isForwarded && (
-                    <div className="flex items-center gap-1 mb-1 text-[#8696a0] italic text-[11px]">
-                      <Forward className="w-3 h-3" />
-                      Forwarded
-                    </div>
-                  )}
-
-                  {msg.replyTo && (
-                    <div 
-                      className="mb-1.5 p-2 rounded bg-black/20 border-l-4 border-[#00a884] cursor-pointer hover:bg-black/30 transition-colors"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        const el = document.getElementById(`msg-${msg.replyTo._id || msg.replyTo}`);
-                        el?.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                      }}
-                    >
-                      <p className="text-[11px] font-bold text-[#00a884] truncate">
-                        {msg.replyTo.senderId === authId ? "You" : (selectedUser.username || "User")}
-                      </p>
-                      <p className="text-[12px] text-[#8696a0] truncate line-clamp-1 italic">
-                        {msg.replyTo.text || (msg.replyTo.image ? "Photo" : "Message")}
-                      </p>
-                    </div>
-                  )}
-
-                  {msg.image && (
-                    <div className="mb-1 rounded overflow-hidden cursor-pointer" onClick={() => window.open(msg.isOptimistic ? msg.image : `${import.meta.env.VITE_URL}${msg.image}`, '_blank')}>
-                      <img 
-                        src={getMediaUrl(msg.image)} 
-                        alt="Attachment" 
-                        className="max-h-[300px] w-full object-cover transition-transform hover:scale-[1.03]" 
-                        onLoad={() => {
-                           // Force scroll to bottom when images load
-                           messageEndRef.current?.scrollIntoView({ behavior: "auto", block: "end" });
-                        }}
-                      />
-                    </div>
-                  )}
-                  {msg.text && (
-                    <p className="px-1" style={{ whiteSpace: "pre-wrap", wordBreak: "break-word" }}>{msg.text}</p>
-                  )}
-                  <div className="flex justify-end items-center gap-1 mt-0.5">
-                    <span style={{ fontSize: "10px", color: "#8696a0" }}>{format(new Date(msg.createdAt), "h:mm a")}</span>
-                    {isMine && (
-                      msg.status === "pending" ? (
-                        <Clock className="w-3 h-3 text-[#8696a0] animate-pulse" />
-                      ) : msg.status === "sent" ? (
-                        <Check className="w-3.5 h-3.5 text-[#8696a0]" />
-                      ) : (
-                        <CheckCheck className={clsx("w-3.5 h-3.5", msg.status === "read" ? "text-wa-blue-tick" : "text-[#8696a0]")} />
-                      )
-                    )}
-                  </div>
-                </div>
-              </div>
+                msg={msg}
+                isMine={isMine}
+                isSelected={isSelected}
+                isSelecting={isSelecting}
+                toggleSelect={toggleMsgSelect}
+                handleContextMenu={handleContextMenu}
+                handleTouchStart={handleTouchStart}
+                handleTouchEnd={handleTouchEnd}
+                authId={authId}
+                selectedUser={selectedUser}
+              />
             );
           })
         )}
@@ -698,7 +638,7 @@ const ChatWindow = () => {
                 className="absolute bottom-14 left-0 z-50 p-3 rounded-xl shadow-2xl border border-wa-divider grid grid-cols-6 gap-2 h-[250px] overflow-y-auto"
                 style={{ background: "#233138", width: "260px" }}
               >
-                {["😀","😃","😄","😁","😆","😅","😂","🤣","😊","😇","🙂","🙃","😉","😌","😍","🥰","😘","😗","😙","😚","😋","😛","😝","😜","🤪","🤨","🧐","🤓","😎","🤩","🥳","😏","😒","😞","😔","😟","😕","🙁","☹️","😣","😖","😫","😩","🥺","😢","😭","😤","😠","😡","🤬","🤯","😳","🥵","🥶","😱","😨","😰","😥","😓","🤗","🤔","🤭","🤫","🤥","😶","😐","😑","😬","🙄","😯","😦","😧","😮","😲","🥱","😴","🤤","😪","😵","🤐","🥴","🤢","🤮","🤧","😷","🤒","🤕","🤑","🤠","😈","👿","👹","👺","🤡","💩","👻","💀","☠️","👽","👾","🤖","🎃","😺","😸","😻","😼","😽","🙀","😿","😾"].map(emoji => (
+                {EMOJIS.map(emoji => (
                   <button
                     key={emoji}
                     onClick={() => addEmoji(emoji)}
@@ -825,4 +765,4 @@ const ChatWindow = () => {
   );
 };
 
-export default ChatWindow;
+export default React.memo(ChatWindow);

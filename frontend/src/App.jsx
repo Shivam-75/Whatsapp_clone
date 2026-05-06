@@ -3,19 +3,21 @@ import clsx from 'clsx';
 import { Toaster } from "react-hot-toast";
 import FarLeftSidebar from './components/layout/FarLeftSidebar';
 import LeftSidebar from './components/layout/LeftSidebar';
-import StatusPage from './pages/StatusPage';
 import WelcomeScreen from './components/layout/WelcomeScreen';
-import ChatWindow from './components/layout/ChatWindow';
-import GroupsPage from './pages/GroupsPage';
-import Login from "./pages/Login";
-import Signup from "./pages/Signup";
-import ProfilePage from "./pages/ProfilePage";
 import { useAuthStore } from "./store/useAuthStore";
 import { useChatStore } from "./store/useChatStore";
 import { useStatusStore } from "./store/useStatusStore";
 import { useGroupStore } from "./store/useGroupStore";
-import { useEffect } from "react";
+import { useEffect, lazy, Suspense } from "react";
 import { Loader } from "lucide-react";
+
+// Lazy loading pages for performance
+const StatusPage = lazy(() => import('./pages/StatusPage'));
+const GroupsPage = lazy(() => import('./pages/GroupsPage'));
+const Login = lazy(() => import('./pages/Login'));
+const Signup = lazy(() => import('./pages/Signup'));
+const ProfilePage = lazy(() => import('./pages/ProfilePage'));
+const ChatWindow = lazy(() => import('./components/layout/ChatWindow'));
 
 function App() {
   const { authUser, checkAuth, isCheckingAuth, socket } = useAuthStore();
@@ -65,19 +67,25 @@ function App() {
         "flex-1 h-full bg-wa-bg-panel relative flex flex-col transition-all duration-300",
         authUser && isSidebarVisible && "hidden md:flex"
       )}>
-        <Routes>
-          <Route path="/" element={authUser ? <WelcomeScreen /> : <Navigate to="/login" />} />
-          <Route path="/signup" element={!authUser ? <Signup /> : <Navigate to="/" />} />
-          <Route path="/login" element={!authUser ? <Login /> : <Navigate to="/" />} />
-          
-          {/* Chat Screen */}
-          <Route path="/chat/:chatId" element={authUser ? <ChatWindow /> : <Navigate to="/login" />} />
-          
-          {/* Profile Screen */}
-          <Route path="/profile" element={authUser ? <ProfilePage /> : <Navigate to="/login" />} />
-          <Route path="/status" element={authUser ? <StatusPage /> : <Navigate to="/login" />} />
-          <Route path="/groups" element={authUser ? <GroupsPage /> : <Navigate to="/login" />} />
-        </Routes>
+        <Suspense fallback={
+          <div className="flex-1 flex items-center justify-center bg-wa-bg-panel">
+            <Loader className="w-8 h-8 animate-spin text-wa-accent" />
+          </div>
+        }>
+          <Routes>
+            <Route path="/" element={authUser ? <WelcomeScreen /> : <Navigate to="/login" />} />
+            <Route path="/signup" element={!authUser ? <Signup /> : <Navigate to="/" />} />
+            <Route path="/login" element={!authUser ? <Login /> : <Navigate to="/" />} />
+            
+            {/* Chat Screen */}
+            <Route path="/chat/:chatId" element={authUser ? <ChatWindow /> : <Navigate to="/login" />} />
+            
+            {/* Profile Screen */}
+            <Route path="/profile" element={authUser ? <ProfilePage /> : <Navigate to="/login" />} />
+            <Route path="/status" element={authUser ? <StatusPage /> : <Navigate to="/login" />} />
+            <Route path="/groups" element={authUser ? <GroupsPage /> : <Navigate to="/login" />} />
+          </Routes>
+        </Suspense>
       </div>
       <Toaster position="top-center" reverseOrder={false} />
     </div>

@@ -149,7 +149,7 @@ export const useChatStore = create((set, get) => ({
     
     try {
       console.log(`[DEBUG] Fetching messages for: ${userId}`);
-      const res = await axiosInstance.get(`/messages/${userId}?limit=40`);
+      const res = await axiosInstance.get(`/messages/${userId}?limit=20`);
       console.log(`[DEBUG] Fetched ${res.data.length} messages for ${userId}`);
       const serverMsgs = res.data;
       set((state) => {
@@ -162,8 +162,10 @@ export const useChatStore = create((set, get) => ({
         );
         
         const merged = [...serverMsgs, ...currentOptimistic];
-        saveToStorage(`${MSG_CACHE_PREFIX}${userId}`, merged);
-        return { messages: merged, hasMoreMessages: serverMsgs.length >= 40 };
+        // Only cache the most recent 20 to keep initial load consistent with user request
+        const cacheMsgs = merged.slice(-20);
+        saveToStorage(`${MSG_CACHE_PREFIX}${userId}`, cacheMsgs);
+        return { messages: merged, hasMoreMessages: serverMsgs.length >= 20 };
       });
       get().markMessagesAsRead(userId);
       get().dismissUserToasts(userId);
@@ -187,14 +189,14 @@ export const useChatStore = create((set, get) => ({
     try {
       const oldestMsg = messages[0];
       const before = oldestMsg.createdAt;
-      const res = await axiosInstance.get(`/messages/${userId}?limit=40&before=${before}`);
+      const res = await axiosInstance.get(`/messages/${userId}?limit=20&before=${before}`);
       if (res.data.length === 0) {
         set({ hasMoreMessages: false });
         return;
       }
       set(state => ({
         messages: [...res.data, ...state.messages],
-        hasMoreMessages: res.data.length >= 40
+        hasMoreMessages: res.data.length >= 20
       }));
     } catch {
     } finally {

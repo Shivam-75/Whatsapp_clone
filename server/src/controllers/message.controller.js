@@ -6,20 +6,29 @@ import { deleteUploadedFile } from "../middleware/upload.js";
 export const getMessages = async (req, res) => {
   try {
     const { id: userToChatId } = req.params;
+    const { limit = 20, before } = req.query;
     const myId = req.user._id;
 
-    console.log(`[DEBUG] getMessages: myId=${myId}, targetId=${userToChatId}`);
-
-    const messages = await Message.find({
+    const query = {
       $or: [
         { senderId: String(myId), receiverId: String(userToChatId) },
         { senderId: String(userToChatId), receiverId: String(myId) },
       ],
-    }).sort({ createdAt: 1 }).populate("replyTo");
+    };
 
-    console.log(`[DEBUG] Found ${messages.length} messages`);
+    if (before) {
+      query.createdAt = { $lt: new Date(before) };
+    }
 
-    res.status(200).json(messages);
+    const messages = await Message.find(query)
+      .sort({ createdAt: -1 })
+      .limit(parseInt(limit))
+      .populate("replyTo");
+
+    // Reverse to return in chronological order for the frontend
+    const chronologicalMessages = messages.reverse();
+
+    res.status(200).json(chronologicalMessages);
   } catch (error) {
     console.error("ERROR in getMessages:", error);
     res.status(500).json({ error: "Internal Server Error" });

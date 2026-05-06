@@ -120,17 +120,26 @@ export const deleteGroupMessages = async (req, res) => {
 export const getGroupMessages = async (req, res) => {
   try {
     const { id: groupId } = req.params;
+    const { limit = 20, before } = req.query;
     const userId = req.user._id;
 
     const group = await Group.findOne({ _id: groupId, members: userId });
     if (!group) return res.status(404).json({ error: "Group not found or not a member" });
 
-    const messages = await Message.find({ groupId })
-      .sort({ createdAt: 1 })
+    const query = { groupId };
+    if (before) {
+      query.createdAt = { $lt: new Date(before) };
+    }
+
+    const messages = await Message.find(query)
+      .sort({ createdAt: -1 })
+      .limit(parseInt(limit))
       .populate("senderId", "username profilePic")
       .populate("replyTo");
 
-    res.status(200).json(messages);
+    const chronologicalMessages = messages.reverse();
+
+    res.status(200).json(chronologicalMessages);
   } catch (error) {
     console.error("Error in getGroupMessages:", error);
     res.status(500).json({ error: "Internal Server Error" });

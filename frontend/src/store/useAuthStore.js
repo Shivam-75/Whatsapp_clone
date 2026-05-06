@@ -7,9 +7,33 @@ import { useStatusStore } from "./useStatusStore";
 import { useGroupStore } from "./useGroupStore";
 
 const BASE_URL = import.meta.env.VITE_URL;
+11: 
+12: // --- localStorage helpers ---
+13: const AUTH_KEY = "wa_auth_user";
+14: 
+15: const loadFromStorage = (key, defaultValue) => {
+16:   try {
+17:     const stored = localStorage.getItem(key);
+18:     return stored ? JSON.parse(stored) : defaultValue;
+19:   } catch {
+20:     return defaultValue;
+21:   }
+22: };
+23: 
+24: const saveToStorage = (key, data) => {
+25:   try {
+26:     localStorage.setItem(key, JSON.stringify(data));
+27:   } catch {}
+28: };
+29: 
+30: const removeFromStorage = (key) => {
+31:   try {
+32:     localStorage.removeItem(key);
+33:   } catch {}
+34: };
 
 export const useAuthStore = create((set, get) => ({
-  authUser: null,
+  authUser: loadFromStorage(AUTH_KEY, null),
   isSigningUp: false,
   isLoggingIn: false,
   isUpdatingProfile: false,
@@ -21,9 +45,11 @@ export const useAuthStore = create((set, get) => ({
     try {
       const res = await axiosInstance.get("/auth/check");
       set({ authUser: res.data });
+      saveToStorage(AUTH_KEY, res.data);
       get().connectSocket();
     } catch (error) {
       set({ authUser: null });
+      removeFromStorage(AUTH_KEY);
     } finally {
       set({ isCheckingAuth: false });
     }
@@ -34,6 +60,7 @@ export const useAuthStore = create((set, get) => ({
     try {
       const res = await axiosInstance.post("/auth/register", data);
       set({ authUser: res.data });
+      saveToStorage(AUTH_KEY, res.data);
       toast.success("Account created successfully!");
       get().connectSocket();
     } catch (error) {
@@ -48,6 +75,7 @@ export const useAuthStore = create((set, get) => ({
     try {
       const res = await axiosInstance.post("/auth/login", data);
       set({ authUser: res.data });
+      saveToStorage(AUTH_KEY, res.data);
       toast.success("Logged in successfully!");
       get().connectSocket();
     } catch (error) {
@@ -61,6 +89,9 @@ export const useAuthStore = create((set, get) => ({
     try {
       await axiosInstance.post("/auth/logout");
       set({ authUser: null });
+      removeFromStorage(AUTH_KEY);
+      // Optional: Clear all other caches on logout
+      localStorage.clear(); 
       toast.success("Logged out!");
       get().disconnectSocket();
     } catch (error) {
